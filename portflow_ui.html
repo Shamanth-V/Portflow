@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PortFlow Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      background: linear-gradient(to right, #e3f2fd, #fff);
+      color: #212529;
+    }
+    body.dark-mode {
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #f8f9fa;
+    }
+    .dark-mode .card {
+      background-color: #1f1f1f;
+      color: #f8f9fa;
+      border-color: #333;
+    }
+    .dark-mode .table {
+      background-color: #1f1f1f;
+      color: #f8f9fa;
+    }
+    .dark-mode .table td,
+.dark-mode .table th {
+  color: #ffffff !important;
+}
+    .dark-mode .table thead {
+      background-color: #2c2c2c;
+      color: #f8f9fa
+    }
+    .dark-mode .table td,
+    .dark-mode .table th {
+      background-color: #1f1f1f;
+    }
+    .dark-mode .table-hover tbody tr:hover {
+      background-color: #2c2c2c;
+    }
+    .dark-mode .form-select,
+.dark-mode .form-control {
+  background-color: #2b2b2b;
+  color: #f8f9fa;
+  border-color: #444;
+}
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #aaa;
+}
+.dark-mode select option {
+  background-color: #2b2b2b;
+  color: #fff;
+}
+.dark-mode .btn {
+  color: white;}
+    .card-header {
+      font-weight: 600;
+      font-size: 1.1rem;
+      background-color: #0d6efd;
+      color: white;
+    }
+    .dark-mode .card-header {
+      background-color: #343a40;
+    }
+    .dark-mode .transport-history small {
+  color: #ffffff !important;
+}
+    .dark-mode .transport-badge {
+  color: white !important;
+}
+    .transport-badge {
+      font-size: 0.8em;
+      padding: 4px 8px;
+      border-radius: 5px;
+      margin: 2px;
+    }
+    .ship-badge { background-color: #007bff; color: white; }
+    .truck-badge { background-color: #ffc107; color: black; }
+    .rail-badge { background-color: #6f42c1; color: white; }
+    .form-control, .form-select {
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-primary {
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      border: none;
+    }
+    .btn-outline-secondary {
+      border-color: #6c757d;
+      color: #6c757d;
+    }
+    .btn-outline-secondary:hover {
+      background-color: #6c757d;
+      color: white;
+    }
+    .transport-history {
+      font-size: 0.9em;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>📦 PortFlow Dashboard</h2>
+      <button class="btn btn-outline-secondary" onclick="toggleDarkMode()">
+        <i class="bi bi-moon-stars"></i> Toggle Dark Mode
+      </button>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="row mb-4">
+      <div class="col-md-3"><div class="card text-center shadow-sm border-success"><div class="card-body"><h5>Total Containers</h5><h2 id="totalContainers">0</h2></div></div></div>
+      <div class="col-md-3"><div class="card text-center shadow-sm border-info"><div class="card-body"><h5>In Port</h5><h2 id="inPort">0</h2></div></div></div>
+      <div class="col-md-3"><div class="card text-center shadow-sm border-warning"><div class="card-body"><h5>In Transit</h5><h2 id="inTransit">0</h2></div></div></div>
+      <div class="col-md-3"><div class="card text-center shadow-sm border-primary"><div class="card-body"><h5>Delivered</h5><h2 id="delivered">0</h2></div></div></div>
+    </div>
+
+    <!-- Add Container Form -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">➕ Add New Container</div>
+      <div class="card-body">
+        <form id="containerForm" class="row g-3">
+          <div class="col-md-3"><input name="id" class="form-control" placeholder="Container ID" required></div>
+          <div class="col-md-2">
+            <select name="type" class="form-select" required>
+              <option value="20ft">20ft</option>
+              <option value="40ft">40ft</option>
+            </select>
+          </div>
+          <div class="col-md-4"><input name="contents" class="form-control" placeholder="Contents" required></div>
+          <div class="col-md-3"><button type="submit" class="btn btn-primary w-100">Add Container</button></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Filter/Search -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <input type="text" id="searchInput" class="form-control w-50 me-3" placeholder="Search by ID or Contents">
+      <select id="statusFilter" class="form-select w-25">
+        <option value="All">All Statuses</option>
+        <option value="In Port">In Port</option>
+        <option value="In Transit">In Transit</option>
+        <option value="Delivered">Delivered</option>
+        <option value="On Hold">On Hold</option>
+      </select>
+    </div>
+
+    <!-- Container Table -->
+    <div class="card shadow-sm">
+      <div class="card-header">📋 Container List</div>
+      <div class="card-body table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr><th>ID</th><th>Type</th><th>Contents</th><th>Status</th><th>Transports</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="containerList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Transport Modal -->
+  <div class="modal fade" id="transportModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Transport</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="transportForm">
+            <input type="hidden" id="modalContainerId">
+            <select class="form-select mb-2" id="transportType" required>
+              <option value="Ship">Ship</option>
+              <option value="Truck">Truck</option>
+              <option value="Rail">Rail</option>
+            </select>
+            <input type="text" id="carrierName" class="form-control mb-2" placeholder="Carrier Name" required>
+            <input type="datetime-local" id="departureTime" class="form-control mb-2">
+            <input type="datetime-local" id="arrivalTime" class="form-control mb-2">
+            <textarea id="transportNotes" class="form-control mb-2" placeholder="Notes"></textarea>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" id="saveTransportBtn">Save Transport</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const transportModal = new bootstrap.Modal(document.getElementById('transportModal'));
+    let currentContainerId = null;
+    let containers = [];
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    async function fetchContainers() {
+      const res = await fetch('http://localhost:5001/api/containers');
+      containers = await res.json();
+      renderContainers();
+      updateDashboard();
+    }
+
+    function renderContainers() {
+      const list = document.getElementById('containerList');
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+
+      list.innerHTML = containers
+        .filter(c => (status === 'All' || c.cont_status === status) &&
+                     (c.cont_id.toLowerCase().includes(query) || c.cont_contents.toLowerCase().includes(query)))
+        .map(c => `
+          <tr>
+            <td>${c.cont_id}</td>
+            <td>${c.cont_type}</td>
+            <td>${c.cont_contents}</td>
+            <td>
+              <select class="form-select" onchange="updateStatus('${c.cont_id}', this.value)">
+                ${['In Port','In Transit','Delivered','On Hold'].map(s => `<option ${s === c.cont_status ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+            </td>
+            <td>
+              ${c.transports.map(t => `<span class="transport-badge ${getBadgeClass(t.transport_type)}">${t.transport_type}</span>`).join('') || '<i>None</i>'}
+              <button class="btn btn-sm btn-outline-info mt-1" onclick="toggleTransportDetails('${c.cont_id}')">Show Details</button>
+              <div class="transport-history d-none" id="details-${c.cont_id}">
+                ${c.transports.map(t => `
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <small>${t.transport_type} by ${t.carrier_name}${t.departure_time ? `, Dep: ${new Date(t.departure_time).toLocaleString()}` : ''}${t.arrival_time ? `, Arr: ${new Date(t.arrival_time).toLocaleString()}` : ''}${t.notes ? ` — ${t.notes}` : ''}</small>
+                    <button class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTransport(${t.transport_id})"><i class="bi bi-trash"></i></button>
+                  </div>`).join('')}
+              </div>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="openTransportModal('${c.cont_id}')"><i class="bi bi-plus"></i></button>
+              <button class="btn btn-sm btn-danger" onclick="deleteContainer('${c.cont_id}')"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>`).join('');
+    }
+
+    function updateDashboard() {
+      document.getElementById('totalContainers').textContent = containers.length;
+      document.getElementById('inPort').textContent = containers.filter(c => c.cont_status === 'In Port').length;
+      document.getElementById('inTransit').textContent = containers.filter(c => c.cont_status === 'In Transit').length;
+      document.getElementById('delivered').textContent = containers.filter(c => c.cont_status === 'Delivered').length;
+    }
+
+    async function updateStatus(id, status) {
+      await fetch(`http://localhost:5001/api/containers/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      fetchContainers();
+    }
+
+    async function deleteContainer(id) {
+      if (!confirm(`Delete container ${id}?`)) return;
+      await fetch(`http://localhost:5001/api/containers/${id}`, { method: 'DELETE' });
+      fetchContainers();
+    }
+
+    function toggleTransportDetails(containerId) {
+      const el = document.getElementById(`details-${containerId}`);
+      if (el) el.classList.toggle('d-none');
+    }
+
+    async function deleteTransport(transportId) {
+      if (!confirm("Delete this transport?")) return;
+      await fetch(`http://localhost:5001/api/transports/${transportId}`, { method: 'DELETE' });
+      fetchContainers();
+    }
+
+    function openTransportModal(containerId) {
+      currentContainerId = containerId;
+      document.getElementById('modalContainerId').value = containerId;
+      document.getElementById('transportForm').reset();
+      transportModal.show();
+    }
+
+    document.getElementById('saveTransportBtn').addEventListener('click', async () => {
+      const transportData = {
+        transport_type: document.getElementById('transportType').value,
+        carrier_name: document.getElementById('carrierName').value,
+        departure_time: document.getElementById('departureTime').value,
+        arrival_time: document.getElementById('arrivalTime').value,
+        notes: document.getElementById('transportNotes').value
+      };
+      await fetch(`http://localhost:5001/api/containers/${currentContainerId}/transports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transportData)
+      });
+      transportModal.hide();
+      fetchContainers();
+    });
+
+    function getBadgeClass(type) {
+      return type === 'Ship' ? 'ship-badge' : type === 'Truck' ? 'truck-badge' : 'rail-badge';
+    }
+
+    document.getElementById('containerForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+      await fetch('http://localhost:5001/api/containers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: data.id, type: data.type, contents: data.contents })
+      });
+      form.reset();
+      fetchContainers();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', renderContainers);
+    document.getElementById('statusFilter').addEventListener('change', renderContainers);
+
+    fetchContainers();
+  </script>
+</body>
+</html>
